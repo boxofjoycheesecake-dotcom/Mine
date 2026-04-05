@@ -1,0 +1,5 @@
+{
+  "name": "St. Peter Digital Assistant",
+  "description": "A digital assistant demo for St. Peter Life Plans with fallback error handling.",
+  "requestFramePermissions": []
+}

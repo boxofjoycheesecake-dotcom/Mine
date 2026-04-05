@@ -3,6 +3,15 @@ import { Send, Loader2, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
 
+const StPeterLogo = () => (
+  <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center flex-shrink-0 border border-gray-100 mt-1">
+    <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#007A33]" fill="currentColor">
+      <path d="M12 2L3 6v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-4z"/>
+      <path d="M11 7h2v3h3v2h-3v5h-2v-5H8v-2h3V7z" fill="#fff"/>
+    </svg>
+  </div>
+);
+
 type Message = {
   id: string;
   text: string;
@@ -21,19 +30,25 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const chatBoxRef = useRef<HTMLDivElement>(null);
 
+  const SUGGESTED_REPLIES = [
+    'Tell me about Plans',
+    'Memorial Services',
+    'Funeral Checklist',
+    'Speak to an Agent'
+  ];
+
   useEffect(() => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
 
-  const sendMessage = async () => {
-    const text = inputValue.trim();
-    if (!text) return;
+  const handleSend = async (textToSend: string) => {
+    if (!textToSend.trim()) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text,
+      text: textToSend,
       side: 'user',
     };
 
@@ -49,7 +64,7 @@ export default function App() {
         parts: [{ text: m.text }],
       }));
       
-      history.push({ role: 'user', parts: [{ text }] });
+      history.push({ role: 'user', parts: [{ text: textToSend }] });
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -80,6 +95,8 @@ export default function App() {
     }
   };
 
+  const sendMessage = () => handleSend(inputValue);
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !isLoading) {
       sendMessage();
@@ -104,14 +121,15 @@ export default function App() {
       <div className="w-full max-w-md h-[600px] bg-white rounded-2xl shadow-[0_10px_25px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-[#007A33] text-white p-4 flex items-center justify-between shadow-sm z-10">
-          <div className="font-bold text-xl">St. Peter Digital Assistant</div>
+          <div className="font-bold text-lg">St. Peter Digital Assistant</div>
           <button 
             onClick={downloadChat}
-            className="p-2 hover:bg-[#005A26] rounded-full transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-sm font-medium"
             title="Download Chat History"
             aria-label="Download Chat History"
           >
-            <Download size={20} />
+            <Download size={16} />
+            <span>Save Chat</span>
           </button>
         </div>
 
@@ -127,22 +145,49 @@ export default function App() {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.2 }}
-                className={`max-w-[80%] p-3.5 rounded-2xl text-[0.95em] leading-relaxed shadow-sm ${
-                  msg.side === 'bot'
-                    ? 'bg-[#e9e9eb] text-gray-800 self-start rounded-bl-sm'
-                    : 'bg-[#007A33] text-white self-end rounded-br-sm'
+                className={`flex gap-2 max-w-[85%] ${
+                  msg.side === 'bot' ? 'self-start' : 'self-end flex-row-reverse'
                 }`}
               >
-                {msg.text}
+                {msg.side === 'bot' && <StPeterLogo />}
+                <div
+                  className={`p-3.5 rounded-2xl text-[0.95em] leading-relaxed shadow-sm ${
+                    msg.side === 'bot'
+                      ? 'bg-[#e9e9eb] text-gray-800 rounded-tl-sm'
+                      : 'bg-[#007A33] text-white rounded-tr-sm'
+                  }`}
+                >
+                  {msg.text}
+                </div>
               </motion.div>
             ))}
             {isLoading && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="bg-[#e9e9eb] text-gray-800 self-start rounded-2xl rounded-bl-sm p-3.5 shadow-sm"
+                className="flex gap-2 max-w-[85%] self-start"
               >
-                <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                <StPeterLogo />
+                <div className="bg-[#e9e9eb] text-gray-800 rounded-2xl rounded-tl-sm p-3.5 shadow-sm flex items-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+                </div>
+              </motion.div>
+            )}
+            {!isLoading && messages.length > 0 && messages[messages.length - 1].side === 'bot' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-wrap gap-2 mt-2 ml-10"
+              >
+                {SUGGESTED_REPLIES.map((reply) => (
+                  <button
+                    key={reply}
+                    onClick={() => handleSend(reply)}
+                    className="bg-white border border-[#007A33] text-[#007A33] px-3 py-1.5 rounded-full text-[0.85em] font-medium hover:bg-[#007A33] hover:text-white transition-colors shadow-sm"
+                  >
+                    {reply}
+                  </button>
+                ))}
               </motion.div>
             )}
           </AnimatePresence>
